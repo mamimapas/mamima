@@ -1,14 +1,15 @@
 import math
-from simpleai.search import SearchProblem, astar
-from simpleai.search.viewers import BaseViewer, ConsoleViewer
+from simpleai.search import SearchProblem, astar, breadth_first, depth_first
+from simpleai.search.viewers import BaseViewer
+import time
 
 # Representamos la varilla como una tupla de tres celdas
 # Cada celda es una tupla de coordenadas (x, y)
-# La varilla siempre está ordenada de izquierda a derecha o de arriba a abajo (por ello necesitamos saber su posicion tanto horizontal como vertical)
+# La varilla siempre está ordenada de izquierda a derecha o de arriba a abajo
 
 # Definición de los laberintos
 laberinto1 = [
-    [".",".",".",".",".",".",".",".","."],
+    ["t","t","t",".",".",".",".",".","."],
     ["#",".",".",".","#",".",".",".","."],
     [".",".",".",".","#",".",".",".","."],
     [".","#",".",".",".",".",".","#","."],
@@ -16,7 +17,7 @@ laberinto1 = [
 ]
 
 laberinto2 = [
-    [".",".",".",".",".",".",".",".","."],
+    ["t","t","t",".",".",".",".",".","."],
     ["#",".",".",".","#",".",".","#","."],
     [".",".",".",".","#",".",".",".","."],
     [".","#",".",".",".",".",".","#","."],
@@ -24,13 +25,13 @@ laberinto2 = [
 ]
 
 laberinto3 = [
-    [".",".","."],
+    ["t","t","t"],
     [".",".","."],
     [".",".","."]
 ]
 
 laberinto4 = [
-    [".",".",".",".",".",".",".",".",".","."],
+    ["t","t","t",".",".",".",".",".",".","."],
     [".","#",".",".",".",".","#",".",".","."],
     [".","#",".",".",".",".",".",".",".","."],
     [".",".",".",".",".",".",".",".",".","."],
@@ -88,64 +89,104 @@ class ProblemaLaberinto(SearchProblem):  # Definimos una clase que hereda de Sea
             acciones.append('C')
 
         return acciones
-        pass
+
+    def puede_moverse(self, x, y, dx, dy, orientacion):
+        # Calculamos las nuevas coordenadas de la celda izquierda/superior de la varilla
+        nx, ny = x + dx, y + dy
+        # Comprobamos si la varilla se saldría del tablero
+        if nx < 0 or ny < 0 or nx >= len(self.tablero[0]) or ny >= len(self.tablero):
+            return False
+        # Comprobamos si la varilla chocaría con una pared
+        if self.tablero[ny][nx] == '#':
+            return False
+        # Si la varilla está en orientación horizontal, comprobamos la celda a la derecha
+        if orientacion == 'H' and nx + 2 < len(self.tablero[0]) and self.tablero[ny][nx + 2] == '#':
+            return False
+        # Si la varilla está en orientación vertical, comprobamos la celda inferior
+        if orientacion == 'V' and ny + 2 < len(self.tablero) and self.tablero[ny + 2][nx] == '#':
+            return False
+        # Si no se dan ninguna de las condiciones anteriores, la varilla puede moverse
+        return True
+
+    def puede_cambiar_orientacion(self, x, y, orientacion):
+        # Comprobamos si la varilla puede cambiar su orientación sin chocar con una pared o salirse del tablero
+        if orientacion == 'H':  # Si la varilla está en orientación horizontal
+            # Comprobamos si hay espacio suficiente para cambiar a orientación vertical
+            return y + 2 < len(self.tablero) and self.tablero[y + 2][x] != '#'
+        else:  # Si la varilla está en orientación vertical
+            # Comprobamos si hay espacio suficiente para cambiar a orientación horizontal
+            return x + 2 < len(self.tablero[0]) and self.tablero[y][x + 2] != '#'
 
     def result(self, estado, accion):
-        x, y = estado[0]  # Extraemos las coordenadas de la celda izquierda/superior de la varilla
-        # Determinamos la orientación de la varilla en base a si la coordenada y de la primera celda es igual a la de la segunda
-        # Si son iguales, la varilla está en orientación horizontal ('H'), si no, está en orientación vertical ('V')
+        # Aquí necesitamos definir cómo cambia el estado de la varilla en función de la acción tomada
+        x, y = estado[0]  # La celda izquierda/superior de la varilla
         orientacion = 'H' if estado[0][1] == estado[1][1] else 'V'
 
-        # Aplicamos la acción al estado
-        if accion == 'I':  # Si la acción es mover a la Izquierda
-            # Creamos una nueva varilla moviendo la celda izquierda/superior una posición a la izquierda (x-1)
-            # Mantenemos la misma orientación
+        if accion == 'I':  # Si la acción es mover a la izquierda
             return crear_varilla(x - 1, y, orientacion)
-        elif accion == 'D':  # Si la acción es mover a la Derecha
-            # Creamos una nueva varilla moviendo la celda izquierda/superior una posición a la derecha (x+1)
-            # Mantenemos la misma orientación
+        elif accion == 'D':  # Si la acción es mover a la derecha
             return crear_varilla(x + 1, y, orientacion)
-        elif accion == 'A':  # Si la acción es mover Arriba
-            # Creamos una nueva varilla moviendo la celda izquierda/superior una posición hacia arriba (y-1)
-            # Mantenemos la misma orientación
+        elif accion == 'A':  # Si la acción es mover hacia arriba
             return crear_varilla(x, y - 1, orientacion)
-        elif accion == 'B':  # Si la acción es mover Abajo
-            # Creamos una nueva varilla moviendo la celda izquierda/superior una posición hacia abajo (y+1)
-            # Mantenemos la misma orientación
+        elif accion == 'B':  # Si la acción es mover hacia abajo
             return crear_varilla(x, y + 1, orientacion)
-        else:  # Si la acción es Cambiar orientación
-            # Creamos una nueva varilla en la misma posición pero con la orientación cambiada
-            # Si la orientación era horizontal ('H'), la cambiamos a vertical ('V'), y viceversa
+        else:  # Si la acción es cambiar la orientación
             return crear_varilla(x, y, 'V' if orientacion == 'H' else 'H')
 
     def is_goal(self, estado):
-        # Aquí necesitamos comprobar si el estado es un estado objetivo
-        # Un estado es un estado objetivo si la varilla está en la esquina inferior derecha del laberinto
+        # Aquí necesitamos definir cuándo hemos alcanzado el objetivo
+        # En este caso, el objetivo es que la varilla esté en la esquina inferior derecha del tablero, en posición horizontal
         return estado == self.objetivo
 
-    def cost(self, estado, accion, estado2):
-        # El coste de cada acción es 1, independientemente de la acción
-        return 1
-
     def heuristic(self, estado):
-        # Aquí necesitamos definir la heurística para el algoritmo A*
-        # Podemos usar la distancia de Manhattan desde la celda derecha/inferior de la varilla hasta la esquina inferior derecha del laberinto
+        # Aquí necesitamos definir una función heurística para ayudar a la búsqueda a encontrar la solución más rápidamente
+        # En este caso, usamos la distancia de Manhattan entre la celda derecha de la varilla y la celda objetivo
         x, y = estado[2]  # La celda derecha/inferior de la varilla
-        gx, gy = self.objetivo[2]  # La celda derecha/inferior del objetivo
-        return abs(x - gx) + abs(y - gy)
-
-# Aquí iría el resto del código, incluyendo la función principal y las funciones para visualizar el resultado
+        gx, gy = self.objetivo[2]  # La celda objetivo
+        return abs(gx - x) + abs(gy - y)
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def generar_tabla(resultados):
+    solucion = resultados.path()
+    longitud_total = len(solucion) - 1
+    costo_total = resultados.path_cost
+    tamaño_maximo = resultados.max_fringe_size
+    nodos_visitados = resultados.num_visited_nodes
+    iteraciones = resultados.iterations
 
+    tabla = [
+        ["Longitud total de la solución", longitud_total],
+        ["Costo total de la solución", costo_total],
+        ["Tamaño máximo de la frontera", tamaño_maximo],
+        ["Nodos visitados", nodos_visitados],
+        ["Iteraciones", iteraciones]
+    ]
+
+    # Imprimir la tabla en español
+    print("Tabla de resultados:")
+    print("--------------------")
+    for fila in tabla:
+        print(f"{fila[0]}: {fila[1]}")
+    print("--------------------")
+
+
+# Función principal que ejecuta el algoritmo de búsqueda
 def main():
+    print("RESOLVIENDO MEDIANTE A*...")
+    for i, laberinto in enumerate(laberintos):
+        print(f"Resolviendo laberinto {i + 1}...")
+        problema = ProblemaLaberinto(laberinto)
+        visor = BaseViewer()
+        resultado = astar(problema, graph_search=True, viewer=visor)
+        print(f"Solución encontrada: {resultado.path()}")
+        generar_tabla(resultado)
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
+
+
+# Ejecutamos la función principal
+if __name__ == "__main__":
     main()
-    print_hi('PyCharm')
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+
+
