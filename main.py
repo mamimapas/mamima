@@ -91,9 +91,32 @@ class ProblemaLaberinto(SearchProblem):  # Definimos una clase que hereda de Sea
         pass
 
     def result(self, estado, accion):
-        # Aquí necesitamos definir el resultado de aplicar una acción a un estado
-        # Esto implicará mover la varilla o cambiar su orientación
-        pass
+        x, y = estado[0]  # Extraemos las coordenadas de la celda izquierda/superior de la varilla
+        # Determinamos la orientación de la varilla en base a si la coordenada y de la primera celda es igual a la de la segunda
+        # Si son iguales, la varilla está en orientación horizontal ('H'), si no, está en orientación vertical ('V')
+        orientacion = 'H' if estado[0][1] == estado[1][1] else 'V'
+
+        # Aplicamos la acción al estado
+        if accion == 'I':  # Si la acción es mover a la Izquierda
+            # Creamos una nueva varilla moviendo la celda izquierda/superior una posición a la izquierda (x-1)
+            # Mantenemos la misma orientación
+            return crear_varilla(x - 1, y, orientacion)
+        elif accion == 'D':  # Si la acción es mover a la Derecha
+            # Creamos una nueva varilla moviendo la celda izquierda/superior una posición a la derecha (x+1)
+            # Mantenemos la misma orientación
+            return crear_varilla(x + 1, y, orientacion)
+        elif accion == 'A':  # Si la acción es mover Arriba
+            # Creamos una nueva varilla moviendo la celda izquierda/superior una posición hacia arriba (y-1)
+            # Mantenemos la misma orientación
+            return crear_varilla(x, y - 1, orientacion)
+        elif accion == 'B':  # Si la acción es mover Abajo
+            # Creamos una nueva varilla moviendo la celda izquierda/superior una posición hacia abajo (y+1)
+            # Mantenemos la misma orientación
+            return crear_varilla(x, y + 1, orientacion)
+        else:  # Si la acción es Cambiar orientación
+            # Creamos una nueva varilla en la misma posición pero con la orientación cambiada
+            # Si la orientación era horizontal ('H'), la cambiamos a vertical ('V'), y viceversa
+            return crear_varilla(x, y, 'V' if orientacion == 'H' else 'H')
 
     def is_goal(self, estado):
         # Aquí necesitamos comprobar si el estado es un estado objetivo
