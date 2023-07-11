@@ -51,21 +51,43 @@ def crear_varilla(x, y, orientacion):
     else:  # orientacion == 'V'
         return ((x, y), (x, y+1), (x, y+2))
 
-class ProblemaLaberinto(SearchProblem):
-    def __init__(self, tablero):
-        self.tablero = tablero
+class ProblemaLaberinto(SearchProblem):  # Definimos una clase que hereda de SearchProblem
+    def __init__(self, tablero):  # Método de inicialización de la clase
+        self.tablero = tablero  # Guardamos el tablero del laberinto
+        # Definimos el estado objetivo como la varilla en la esquina inferior derecha del tablero, en posición horizontal
         self.objetivo = crear_varilla(len(tablero[0])-3, len(tablero)-1, 'H')
 
-        for y in range(len(self.tablero)):
-            for x in range(len(self.tablero[y])):
-                if self.tablero[y][x].lower() == 't':
-                    self.inicial = crear_varilla(x, y, 'H')
+        # Buscamos la posición inicial de la varilla en el tablero
+        for y in range(len(self.tablero)):  # Recorremos las filas del tablero
+            for x in range(len(self.tablero[y])):  # Recorremos las celdas de cada fila
+                if self.tablero[y][x].lower() == 't':  # Si encontramos una celda con la letra 't'
+                    self.inicial = crear_varilla(x, y, 'H')  # Asumimos que esta es la posición inicial de la varilla y la creamos en posición horizontal
 
+        # Llamamos al método de inicialización de la clase padre, pasando el estado inicial que hemos encontrado
         super(ProblemaLaberinto, self).__init__(initial_state=self.inicial)
 
     def actions(self, estado):
         # Aquí necesitamos definir las acciones posibles para la varilla
         # Esto incluirá mover la varilla una celda en cualquier dirección y cambiar su orientación
+        acciones = []
+        x, y = estado[0]  # La celda izquierda/superior de la varilla
+        orientacion = 'H' if estado[0][1] == estado[1][1] else 'V'
+
+        # Comprobamos si la varilla puede moverse en cada dirección
+        if self.puede_moverse(x, y, -1, 0, orientacion):  # Izquierda
+            acciones.append('I')
+        if self.puede_moverse(x, y, 1, 0, orientacion):  # Derecha
+            acciones.append('D')
+        if self.puede_moverse(x, y, 0, -1, orientacion):  # Arriba
+            acciones.append('A')
+        if self.puede_moverse(x, y, 0, 1, orientacion):  # Abajo
+            acciones.append('B')
+
+        # Comprobamos si la varilla puede cambiar su orientación
+        if self.puede_cambiar_orientacion(x, y, orientacion):
+            acciones.append('C')
+
+        return acciones
         pass
 
     def result(self, estado, accion):
